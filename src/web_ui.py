@@ -4,7 +4,7 @@ from docx import Document
 import numpy as np
 # 在WebUI类初始化前配置HTTP客户端
 gr.routes.client = AsyncClient(verify=False)
-
+import time
 from pdf_processor import PDFProcessor
 from vector_db import VectorDB
 from llm_integration import PatentGenerator
@@ -145,16 +145,55 @@ class WebUI:
             return [("系统", "请输入修改意见")]
 
         try:
-            revised_content = self.patent_generator.revise_draft(feedback, self.current_doc_type)
-            return [
-                ("系统", "开始修订文档..."),
-                ("助手", revised_content)
-            ]
+            if '满意' in feedback:
+                current_content = self.patent_generator.current_draft.get(self.current_doc_type, "No draft available")
+                messages = [
+                    ("系统", "文档已确认满意，开始保存..."),
+                    ("助手", current_content)
+                ]
+                from docx import Document
+                from docx.shared import Pt
+                from docx.enum.text import WD_LINE_SPACING
+
+                # 创建新文档并设置全局样式
+                doc = Document()
+                doc.styles['Normal'].font.name = '宋体'
+                doc.styles['Normal']._element.rPr.rFonts.set(qn('w:eastAsia'), '宋体')
+
+                # 解析XML标签并应用格式
+                paragraphs = current_content.split('\n')
+                for para in paragraphs:
+                    if para.startswith('<标题>'):
+                        title = para[3:-5].strip()  # 提取<标题>内容</标题>
+                        title_para = doc.add_paragraph(title, style='Heading 1')
+                        title_para.style.font.size = Pt(10.5)  # 宋体五号
+                        title_para.style.font.bold = True
+                        title_para.paragraph_format.space_before = Pt(6)
+                        title_para.paragraph_format.space_after = Pt(6)
+                        title_para.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+                    elif para.startswith('<段落>'):
+                        content = para[3:-5].strip()  # 提取<段落>内容</段落>
+                        p = doc.add_paragraph(content)
+                        p.paragraph_format.space_before = Pt(3)
+                        p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+                        p.paragraph_format.first_line_indent = Pt(0)  # 无缩进
+
+                # 保存文档
+                filename = f"{self.current_doc_type}.gradio_{int(time.time())}.docx"
+                doc.save(filename)
+                messages.append( ("系统", f"文件已保存为：{filename}") )
+                return messages
+            else:
+                revised_content = self.patent_generator.revise_draft(feedback, self.current_doc_type)
+                messages = [
+                    ("系统", "开始修订文档..."),
+                    ("助手", revised_content)
+                ]
+                return messages
         except Exception as e:
             return [
-                ("系统", "开始修订文档..."),
-                ("助手", f"修订失败: {str(e)}")
-        ]
-
+                ("系统", "处理反馈时发生错误"),
+                ("助手", f"错误详情: {str(e)}")
+            ]
 if __name__ == "__main__":
     WebUI().init_interface().launch()
