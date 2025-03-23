@@ -10,6 +10,7 @@ from vector_db import VectorDB
 from llm_integration import PatentGenerator
 import os
 os.environ["SSL_CERT_FILE"] = r"H:\anadonda\envs\OpenPatent\Library\ssl\cacert.pem"
+from docx.oxml.ns import qn
 
 class WebUI:
     def __init__(self):
@@ -159,24 +160,37 @@ class WebUI:
                 doc = Document()
                 doc.styles['Normal'].font.name = '宋体'
                 doc.styles['Normal']._element.rPr.rFonts.set(qn('w:eastAsia'), '宋体')
+                # 确保 Heading 1 样式的字体为宋体
+                heading_style = doc.styles['Heading 1']
+                heading_style.font.name = '宋体'
+                heading_style._element.rPr.rFonts.set(qn('w:eastAsia'), '宋体')
+                heading_style.font.size = Pt(10.5)  # 宋体五号
+                heading_style.font.bold = True
+                heading_style.paragraph_format.space_before = Pt(6)
+                heading_style.paragraph_format.space_after = Pt(6)
+                heading_style.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
 
+                # 创建一个新的段落样式用于正文
+                body_style = doc.styles['Normal']
+                body_style.font.name = '宋体'
+                body_style._element.rPr.rFonts.set(qn('w:eastAsia'), '宋体')
+                body_style.font.size = Pt(10.5)  # 宋体五号
+                body_style.paragraph_format.space_before = Pt(0)  # 正文段落前无缩进
+                body_style.paragraph_format.space_after = Pt(0)   # 正文段落后无缩进
+                body_style.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+                body_style.paragraph_format.first_line_indent = Pt(0)  # 无缩进
                 # 解析XML标签并应用格式
                 paragraphs = current_content.split('\n')
                 for para in paragraphs:
                     if para.startswith('<标题>'):
-                        title = para[3:-5].strip()  # 提取<标题>内容</标题>
+                        title = para[4:-5].strip()  # 提取<标题>内容</标题>
                         title_para = doc.add_paragraph(title, style='Heading 1')
-                        title_para.style.font.size = Pt(10.5)  # 宋体五号
-                        title_para.style.font.bold = True
-                        title_para.paragraph_format.space_before = Pt(6)
-                        title_para.paragraph_format.space_after = Pt(6)
-                        title_para.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
                     elif para.startswith('<段落>'):
-                        content = para[3:-5].strip()  # 提取<段落>内容</段落>
+                        content = para[4:-5].strip()  # 提取<段落>内容</段落>
                         p = doc.add_paragraph(content)
-                        p.paragraph_format.space_before = Pt(3)
-                        p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
-                        p.paragraph_format.first_line_indent = Pt(0)  # 无缩进
+                        # p.paragraph_format.space_before = Pt(3)
+                        # p.paragraph_format.line_spacing_rule = WD_LINE_SPACING.SINGLE
+                        # p.paragraph_format.first_line_indent = Pt(0)  # 无缩进
 
                 # 保存文档
                 filename = f"{self.current_doc_type}.gradio_{int(time.time())}.docx"
