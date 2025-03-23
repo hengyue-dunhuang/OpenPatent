@@ -13,7 +13,13 @@ os.environ["SSL_CERT_FILE"] = r"H:\anadonda\envs\OpenPatent\Library\ssl\cacert.p
 from docx.oxml.ns import qn
 
 class WebUI:
+    """
+    网页用户界面类，用于创建和管理专利生成系统的用户界面。
+    """
     def __init__(self):
+        """
+        初始化网页用户界面。
+        """
         self.patent_generator = PatentGenerator()
         self.current_stage = None
         self.current_doc_type = None
@@ -25,6 +31,12 @@ class WebUI:
         self.use_existing_db = False
 
     def init_interface(self):
+        """
+        初始化用户界面。
+
+        返回:
+        gr.Blocks: Gradio 界面块。
+        """
         with gr.Blocks(title="OpenPatent 专利生成系统") as demo:
             gr.Markdown("## OpenPatent 专利文档生成系统")
             
@@ -61,6 +73,15 @@ class WebUI:
         return demo
 
     def process_patents(self, files):
+        """
+        处理上传的参考专利文件，创建向量数据库并保存索引。
+
+        参数:
+        files (list): 上传的参考专利文件列表。
+
+        返回:
+        str: 处理结果信息。
+        """
         if not files:
             return "请上传参考专利文件"
         processor = PDFProcessor()
@@ -90,6 +111,12 @@ class WebUI:
         return "参考专利处理完成，已建立三个知识库！"
 
     def load_existing_db(self):
+        """
+        加载已有的本地知识库。
+
+        返回:
+        str: 加载结果信息。
+        """
         self.use_existing_db = True
         self.db_list = [0 for i in range(3)]
         for i, db_type in enumerate(self.db_paths):
@@ -98,16 +125,54 @@ class WebUI:
         return "已加载本地知识库"
 
     def generate_specification(self, tech_doc):
+        """
+        生成专利说明书。
+
+        参数:
+        tech_doc: 上传的技术文档。
+
+        返回:
+        list: 包含系统消息和生成内容的列表。
+        """
         self.current_stage = "specification"
         return self._generate_draft(tech_doc, "说 明 书", "说明书")
 
     def generate_abstract(self, tech_doc):
+        """
+        生成专利摘要。
+
+        参数:
+        tech_doc: 上传的技术文档。
+
+        返回:
+        list: 包含系统消息和生成内容的列表。
+        """
         return self._generate_draft(tech_doc, "摘要", "摘要")
 
     def generate_claims(self, tech_doc):
+        """
+        生成专利权利要求书。
+
+        参数:
+        tech_doc: 上传的技术文档。
+
+        返回:
+        list: 包含系统消息和生成内容的列表。
+        """
         return self._generate_draft(tech_doc, "权 利 要 求 书", "权利要求书")
 
     def _generate_draft(self, tech_doc, db_type: str, doc_type: str):
+        """
+        生成专利文档初稿。
+
+        参数:
+        tech_doc: 上传的技术文档。
+        db_type (str): 数据库类型，如 "摘要", "说明书", "权利要求书"。
+        doc_type (str): 文档类型，如 "说明书", "摘要", "权利要求书"。
+
+        返回:
+        list: 包含系统消息和生成内容的列表。
+        """
         if not self.use_existing_db:
             return [("系统", "请先处理参考专利或选择已有知识库")]
         if tech_doc is None:
@@ -140,6 +205,15 @@ class WebUI:
             ]
 
     def submit_feedback(self, feedback):
+        """
+        提交用户反馈，根据反馈内容进行文档保存或修订。
+
+        参数:
+        feedback (str): 用户的反馈意见。
+
+        返回:
+        list: 包含系统消息和处理结果的列表。
+        """
         if not self.current_doc_type:
             return [("系统", "请先生成草案")]
         if not feedback.strip():
@@ -209,5 +283,6 @@ class WebUI:
                 ("系统", "处理反馈时发生错误"),
                 ("助手", f"错误详情: {str(e)}")
             ]
+
 if __name__ == "__main__":
     WebUI().init_interface().launch()

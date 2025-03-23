@@ -7,7 +7,13 @@ from openai import OpenAI
 load_dotenv()
 
 class PatentGenerator:
+    """
+    专利生成器类，用于生成和修订专利文档。
+    """
     def __init__(self):
+        """
+        初始化专利生成器。
+        """
         self.api_base = "https://openrouter.ai/api/v1"
         self.api_key = os.getenv('open_router_key')
         self.client = OpenAI(api_key=self.api_key, base_url=self.api_base)
@@ -16,9 +22,21 @@ class PatentGenerator:
         self.context: str = ""
 
     def generate_draft(self, query: str, context: str, doc_type: str) -> str:
+        """
+        根据给定的查询、上下文和文档类型生成专利文档初稿。
+
+        参数:
+        query (str): 相关专利内容，用于生成文档。
+        context (str): 参考技术文档，用于模仿风格和格式。
+        doc_type (str): 文档类型，如 "说明书", "摘要", "权利要求书"。
+
+        返回:
+        str: 生成的专利文档初稿内容。
+        """
         self.query = query
         self.context = context
 
+        # 构建提示信息
         prompt = f'''你是一个专业的专利申请文档撰写助手。请参考以下技术文档的行文风格和格式，并基于提供的相关专利内容，生成一段高质量的{doc_type}。该内容应直接适用于专利申请书中的对应部分。
 
 ### 要求：
@@ -43,6 +61,7 @@ class PatentGenerator:
 请根据以上要求，生成专业的{doc_type}。'''
 
         try:
+            # 调用 OpenAI API 生成文档
             response = self.client.chat.completions.create(
                 model="qwen/qwq-32b",
                 messages=[
@@ -62,9 +81,20 @@ class PatentGenerator:
             return error_msg
 
     def revise_draft(self, feedback: str, doc_type: str) -> str:
+        """
+        根据用户反馈修订专利文档初稿。
+
+        参数:
+        feedback (str): 用户的修改意见。
+        doc_type (str): 文档类型，如 "说明书", "摘要", "权利要求书"。
+
+        返回:
+        str: 修订后的专利文档内容。
+        """
         if doc_type not in self.current_draft:
             return '请先生成初稿'
 
+        # 构建修订提示信息
         prompt = f'''你是一个专业的专利申请文档撰写助手。请根据用户反馈修改{doc_type}，同时确保修订后的内容仍然符合原始技术文档的风格和格式，并基于相关专利内容。
 
 ### 要求：
@@ -91,6 +121,7 @@ class PatentGenerator:
 请根据以上要求，生成修订后的{doc_type}。'''
 
         try:
+            # 调用 OpenAI API 修订文档
             response = self.client.chat.completions.create(
                 model="qwen/qwq-32b",
                 messages=[

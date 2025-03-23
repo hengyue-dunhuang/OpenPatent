@@ -2,10 +2,21 @@ import re
 import pdfplumber
 
 class PDFProcessor:
+    """
+    PDF 处理器类，用于将 PDF 文件按章节分割成多个部分。
+    """
     SECTIONS = ['摘要', '权 利 要 求 书', '说 明 书', '说 明 书 附 图']
     
     def split_pdf(self, file_path):
-        """返回字典"""
+        """
+        将 PDF 文件按章节分割成多个部分，并返回一个字典，键为章节名，值为章节内容。
+
+        参数:
+        file_path (str): PDF 文件的路径。
+
+        返回:
+        dict: 包含章节名和对应内容的字典。
+        """
         # 使用 pdfplumber 打开 PDF 文件并提取文本
         with pdfplumber.open(file_path) as pdf:
             full_text = []
